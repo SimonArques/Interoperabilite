@@ -1,0 +1,1 @@
+[{"ldapContextFactory":"com.sun.jndi.ldap.LdapCtxFactory","ldapBaseDN":"DC=imie,DC=lan","ldapAuthentificationMode":"simple","ldapUser":"ldap_read","ldapPassword":"Pr0jetJuJube","ldapServerUrl":"LDAP://192.168.3.250:389"}]
