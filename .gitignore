@@ -1,6 +1,10 @@
 .gradle
 /build/
 /bin/
+/saves/
+/config/
+/libs/
+/download/
 !gradle/wrapper/gradle-wrapper.jar
 
 ### STS ###
