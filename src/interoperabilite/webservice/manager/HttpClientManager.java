@@ -1,18 +1,28 @@
 package interoperabilite.webservice.manager;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+import javax.net.ssl.HttpsURLConnection;
+
+import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.fluent.Request;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 public class HttpClientManager {
 
@@ -86,6 +96,50 @@ public class HttpClientManager {
 		return null;
 	}
 
+	public void PostItem(String item) {
+		try {
+			Request.Post(
+					"http://" + this.server + this.getPort() + "/" + this.getPath() + "/\""
+							+ item+"\"").connectTimeout(1000).socketTimeout(1000)
+					.execute();
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public String sendPost(String item) throws Exception {
+
+		//Deprecated
+		//HttpClient httpClient = new DefaultHttpClient();
+
+		HttpClient httpClient = HttpClientBuilder.create().build(); //Use this instead
+
+		try {
+
+		    HttpPost request = new HttpPost("http://" + this.server + this.getPort() + "/" + this.getPath());
+		    StringEntity params =new StringEntity(item);
+		    request.addHeader("content-type", "application/x-www-form-urlencoded");
+		    request.setEntity(params);
+		    HttpResponse response = httpClient.execute(request);
+		    return response.toString();
+		    //handle response here...
+
+		}catch (Exception ex) {
+
+		    //handle exception here
+
+		} finally {
+		    //Deprecated
+		    //httpClient.getConnectionManager().shutdown();
+		}
+		return null;
+
+	}
+
 	public void GetHttpPdfItem(String fileName) {
 		try {
 			URL url = new URL(this.server);
@@ -139,7 +193,8 @@ public class HttpClientManager {
 
 	public void saveByteArrayPdf(byte[] pdf, String fileName) {
 		try {
-			FileOutputStream out = new FileOutputStream(".\\download\\" + fileName + ".pdf");
+			FileOutputStream out = new FileOutputStream(".\\download\\"
+					+ fileName + ".pdf");
 			out.write(pdf, 0, pdf.length);
 			out.close();
 		} catch (IOException e) {

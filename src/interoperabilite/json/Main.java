@@ -23,11 +23,9 @@ public class Main {
 				"test2.json", Document.class);
 		System.out.println("Extracted " + extracteds);
 
-		ArrayList<Document> extractedDocuments = new ArrayList<Document>();
-		for (Object item : extracteds) {
+		for (Document item : extracteds) {
 			System.out.println("////////////////");
-			System.out.println((item).toString());
-			extractedDocuments.add((Document) item);
+			System.out.println(item);
 			System.out.println("////////////////");
 		}
 	}
@@ -42,13 +40,7 @@ public class Main {
 		ArrayList<User> extracteds = new ArrayList<User>();
 		extracteds = JsonManager.getInstance().<User> readFromFile(User.class);
 
-		ArrayList<User> extractedUsers = new ArrayList<User>();
-
 		for (User item : extracteds) {
-			extractedUsers.add(item);
-		}
-
-		for (User item : extractedUsers) {
 			System.out.println("////////////////");
 			System.out.println(item.toString());
 			System.out.println("////////////////");

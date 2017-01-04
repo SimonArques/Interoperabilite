@@ -17,8 +17,7 @@ public class LdapItem {
 	private String description;
 	private String sAMAccountType;
 	private String objectCategory;
-	private String objectClass;
-	private String email;
+	private ArrayList<String> objectClass;
 	private String mail;
 	private String name;
 	private String value;
@@ -35,7 +34,7 @@ public class LdapItem {
 	private String memberOf;
 	private String operatingSystem;
 	private String objectSID;
-	private String objectGUID;
+	private byte[] objectGUID;
 	private String primaryGroupID;
 	private String pwdLastSet;
 	private String whenCreated;
@@ -181,20 +180,12 @@ public class LdapItem {
 		this.objectCategory = objectCategory;
 	}
 
-	public String getObjectClass() {
+	public ArrayList<String> getObjectClass() {
 		return objectClass;
 	}
 
-	public void setObjectClass(String objectClass) {
+	public void setObjectClass(ArrayList<String> objectClass) {
 		this.objectClass = objectClass;
-	}
-
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
 	}
 
 	public String getMail() {
@@ -326,11 +317,11 @@ public class LdapItem {
 		this.objectSID = objectSID;
 	}
 
-	public String getObjectGUID() {
+	public byte[] getObjectGUID() {
 		return objectGUID;
 	}
 
-	public void setObjectGUID(String objectGUID) {
+	public void setObjectGUID(byte[] objectGUID) {
 		this.objectGUID = objectGUID;
 	}
 
@@ -373,5 +364,23 @@ public class LdapItem {
 
 	public LdapItem() {
 		this.subItems = new ArrayList<LdapItem>();
+		this.objectClass = new ArrayList<String>();
+	}
+
+	public void printRecLdapItem(String sep){
+		this.printRecLdapItem(this.getSubItems(),sep);
+	}
+
+	private void printRecLdapItem(ArrayList<LdapItem> items, String sep){
+		System.out.println("//////////");
+		for (LdapItem item : items) {
+			System.out.println(sep + "Name : " + item.getName() + "\n"+ sep +"ou : "
+					+ item.getOu() + "\n"+sep+"ouTree : "
+					+ item.getOuTree());
+			if (!item.getSubItems().isEmpty()) {
+				sep += "  .";
+				printRecLdapItem(item.getSubItems(), sep);
+			}
+		}
 	}
 }

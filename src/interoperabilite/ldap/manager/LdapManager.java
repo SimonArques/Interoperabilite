@@ -2,6 +2,8 @@ package interoperabilite.ldap.manager;
 
 import interoperabilite.ldap.entities.LdapConfiguration;
 import interoperabilite.ldap.entities.LdapItem;
+import interoperabilite.ldap.entities.imie.Promotion;
+import interoperabilite.ldap.entities.imie.User;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -51,9 +53,10 @@ public class LdapManager {
 				.getLdapUser());
 		env.put(Context.SECURITY_CREDENTIALS, LdapConfiguration.getInstance()
 				.getLdapPassword());
+		env.put("java.naming.ldap.attributes.binary", "objectGUID");
 	}
 
-	public void request(String ouSearch) {
+	public ArrayList<LdapItem> request(String ouSearch, Boolean isDebug) {
 		try {
 			ctx = new InitialLdapContext(env, null);
 
@@ -61,15 +64,23 @@ public class LdapManager {
 			NamingEnumeration<SearchResult> userAnswer = ctx.search(ouSearch,
 					null);
 
-			itemExport(userAnswer);
-			ctx.close();
+			return itemExport(userAnswer, isDebug);
+
 		} catch (NamingException e) {
 			System.err.println("Problème de connexion");
 			e.printStackTrace();
+		} finally {
+			try {
+				ctx.close();
+			} catch (NamingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+		return null;
 	}
 
-	public ArrayList<LdapItem> requestInspector(String ouSearch) {
+	public ArrayList<LdapItem> requestInspector(String ouSearch, Boolean isDebug) {
 		ArrayList<LdapItem> items = new ArrayList<LdapItem>();
 
 		try {
@@ -78,14 +89,17 @@ public class LdapManager {
 			NamingEnumeration<SearchResult> userAnswer = ctx.search(ouSearch,
 					null);
 
-			items = itemExport(userAnswer);
+			items = itemExport(userAnswer, isDebug);
 
 			ctx.close();
 
-			/*
-			 * for (LdapItem ldapItem : items) { ldapItem.setOuTree(ouSearch);
-			 * requestInspector(items,ldapItem.getOuTree()); }
-			 */
+			for (LdapItem ldapItem : items) {
+				ldapItem.setOuTree(ouSearch);
+			}
+
+			for (LdapItem ldapItem : items) {
+				requestInspector(ldapItem, ldapItem.getOuTree(), isDebug);
+			}
 
 		} catch (NamingException e) {
 			System.err.println("Problème de connexion");
@@ -95,20 +109,20 @@ public class LdapManager {
 		return items;
 	}
 
-	public void requestInspector(ArrayList<LdapItem> items, String ouTree) {
+	public void requestInspector(LdapItem item, String ouTree, Boolean isDebug) {
 		try {
-			for (LdapItem ldapItem : items) {
-				if (ldapItem.getOu() != null && !ldapItem.getOu().equals("")) {
-					ouTree = "OU=" + ldapItem.getOu() + "," + ouTree;
-					ldapItem.setOuTree(ouTree);
+			if (item.getOu() != null && !item.getOu().equals("")) {
+				ouTree = "OU=" + item.getOu() + "," + ouTree;
+				item.setOuTree(ouTree);
 
-					ctx = new InitialLdapContext(env, null);
-					NamingEnumeration<SearchResult> userAnswer = ctx.search(
-							ouTree, null);
-					ctx.close();
+				ctx = new InitialLdapContext(env, null);
+				NamingEnumeration<SearchResult> userAnswer = ctx.search(ouTree,
+						null);
+				ctx.close();
 
-					ldapItem.setSubItems(itemExport(userAnswer));
-					requestInspector(ldapItem.getSubItems(), ouTree);
+				item.setSubItems(itemExport(userAnswer, isDebug));
+				for (LdapItem ldapItem2 : item.getSubItems()) {
+					requestInspector(ldapItem2, ouTree, isDebug);
 				}
 			}
 		} catch (NamingException e) {
@@ -118,9 +132,11 @@ public class LdapManager {
 	}
 
 	private ArrayList<LdapItem> itemExport(
-			NamingEnumeration<SearchResult> userAnswer) throws NamingException {
+			NamingEnumeration<SearchResult> userAnswer, Boolean isDebug)
+			throws NamingException {
 
 		ArrayList<LdapItem> toReturn = new ArrayList<LdapItem>();
+
 		while (userAnswer.hasMoreElements()) {
 			SearchResult sr = (SearchResult) userAnswer.next();
 			Attributes attrs = sr.getAttributes();
@@ -133,148 +149,230 @@ public class LdapManager {
 					for (NamingEnumeration ae = attrs.getAll(); ae.hasMore();) {
 						Attribute attr = (Attribute) ae.next();
 						if (attr.getID().equals("sn")) {
-							System.out.println("sn " + attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("sn "
+										+ attr.get(0).toString());
+							}
 							item.setSn(attr.get(0).toString());
 						} else if (attr.getID().equals("cn")) {
-							System.out.println("cn " + attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("cn "
+										+ attr.get(0).toString());
+							}
 							item.setCn(attr.get(0).toString());
 						} else if (attr.getID().equals("displayName")) {
-							System.out.println("displayName "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("displayName "
+										+ attr.get(0).toString());
+							}
 							item.setDisplayName(attr.get(0).toString());
 						} else if (attr.getID().equals("number")) {
-							System.out.println("number "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("number "
+										+ attr.get(0).toString());
+							}
 							item.setNumber(attr.get(0).toString());
 						} else if (attr.getID().equals("value")) {
-							System.out.println("value "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("value "
+										+ attr.get(0).toString());
+							}
 							item.setValue(attr.get(0).toString());
 						} else if (attr.getID().equals("name")) {
-							System.out
-									.println("name " + attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("name "
+										+ attr.get(0).toString());
+							}
 							item.setName(attr.get(0).toString());
 						} else if (attr.getID().equals("mail")) {
-							System.out.println("email "
-									+ attr.get(0).toString());
-							item.setEmail(attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("mail "
+										+ attr.get(0).toString());
+							}
+							item.setMail(attr.get(0).toString());
 						} else if (attr.getID().equals("objectClass")) {
-							System.out.println("objectClass "
-									+ attr.get(0).toString());
-							item.setObjectClass(attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("objectClass "
+										+ attr.get(0).toString());
+							}
+							item.getObjectClass().add((attr.get(0).toString()));
 						} else if (attr.getID().equals("objectCategory")) {
-							System.out.println("objectCategory "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("objectCategory "
+										+ attr.get(0).toString());
+							}
 							item.setObjectCategory(attr.get(0).toString());
 						} else if (attr.getID().equals("sAMAccountType")) {
-							System.out.println("sAMAccountType "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("sAMAccountType "
+										+ attr.get(0).toString());
+							}
 							item.setsAMAccountType(attr.get(0).toString());
 						} else if (attr.getID().equals("description")) {
-							System.out.println("description "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("description "
+										+ attr.get(0).toString());
+							}
 							item.setDescription(attr.get(0).toString());
 						} else if (attr.getID().equals("telephoneNumber")) {
-							System.out.println("telephoneNumber "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("telephoneNumber "
+										+ attr.get(0).toString());
+							}
 							item.setTelephoneNumber(attr.get(0).toString());
 						} else if (attr.getID().equals("givenName")) {
-							System.out.println("givenName "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("givenName "
+										+ attr.get(0).toString());
+							}
 							item.setGivenName(attr.get(0).toString());
 						} else if (attr.getID().equals("manager")) {
-							System.out.println("manager "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("manager "
+										+ attr.get(0).toString());
+							}
 							item.setManager(attr.get(0).toString());
 						} else if (attr.getID().equals("directReports")) {
-							System.out.println("directReports "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("directReports "
+										+ attr.get(0).toString());
+							}
 							item.setDirectReports(attr.get(0).toString());
 						} else if (attr.getID().equals("proxyAddresses")) {
-							System.out.println("proxyAddresses "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("proxyAddresses "
+										+ attr.get(0).toString());
+							}
 							item.setProxyAddresses(attr.get(0).toString());
 						} else if (attr.getID().equals("scriptPath")) {
-							System.out.println("scriptPath "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("scriptPath "
+										+ attr.get(0).toString());
+							}
 							item.setScriptPath(attr.get(0).toString());
 						} else if (attr.getID().equals("sAMAccountName")) {
-							System.out.println("sAMAccountName "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("sAMAccountName "
+										+ attr.get(0).toString());
+							}
 							item.setsAMAccountName(attr.get(0).toString());
 						} else if (attr.getID().equals("accountExpires")) {
-							System.out.println("accountExpires "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("accountExpires "
+										+ attr.get(0).toString());
+							}
 							item.setAccountExpires(attr.get(0).toString());
 						} else if (attr.getID().equals("groupType")) {
-							System.out.println("groupType "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("groupType "
+										+ attr.get(0).toString());
+							}
 							item.setGroupType(attr.get(0).toString());
 						} else if (attr.getID().equals("servicePrincipalName")) {
-							System.out.println("servicePrincipalName "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("servicePrincipalName "
+										+ attr.get(0).toString());
+							}
 							item.setServicePrincipalName(attr.get(0).toString());
 						} else if (attr.getID().equals("msNPAllowDialin")) {
-							System.out.println("msNPAllowDialin "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("msNPAllowDialin "
+										+ attr.get(0).toString());
+							}
 							item.setMsNPAllowDialin(attr.get(0).toString());
 						} else if (attr.getID().equals("whenCreated")) {
-							System.out.println("whenCreated "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("whenCreated "
+										+ attr.get(0).toString());
+							}
 							item.setWhenCreated(attr.get(0).toString());
 						} else if (attr.getID().equals("pwdLastSet")) {
-							System.out.println("pwdLastSet "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("pwdLastSet "
+										+ attr.get(0).toString());
+							}
 							item.setPwdLastSet(attr.get(0).toString());
 						} else if (attr.getID().equals("primaryGroupID")) {
-							System.out.println("primaryGroupID "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("primaryGroupID "
+										+ attr.get(0).toString());
+							}
 							item.setPrimaryGroupID(attr.get(0).toString());
 						} else if (attr.getID().equals("objectGUID")) {
-							System.out.println("objectGUID "
-									+ attr.get(0).toString());
-							item.setObjectGUID(attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("objectGUID "
+										+ attr.get(0).toString());
+							}
+							item.setObjectGUID((byte[]) attr.get(0));
 						} else if (attr.getID().equals("objectSID")) {
-							System.out.println("objectSID "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("objectSID "
+										+ attr.get(0).toString());
+							}
 							item.setObjectSID(attr.get(0).toString());
 						} else if (attr.getID().equals("operatingSystem")) {
-							System.out.println("operatingSystem "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("operatingSystem "
+										+ attr.get(0).toString());
+							}
 							item.setOperatingSystem(attr.get(0).toString());
 						} else if (attr.getID().equals("memberOf")) {
-							System.out.println("memberOf "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("memberOf "
+										+ attr.get(0).toString());
+							}
 							item.setMemberOf(attr.get(0).toString());
 						} else if (attr.getID().equals("ou")) {
-							System.out.println("ou " + attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("ou "
+										+ attr.get(0).toString());
+							}
 							item.setOu(attr.get(0).toString());
 						} else if (attr.getID().equals("dc")) {
-							System.out.println("dc " + attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("dc "
+										+ attr.get(0).toString());
+							}
 							item.setDc(attr.get(0).toString());
 						} else if (attr.getID().equals("anr")) {
-							System.out.println("anr " + attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("anr "
+										+ attr.get(0).toString());
+							}
 							item.setAnr(attr.get(0).toString());
 						} else if (attr.getID().equals(
 								"isMemberOfPartialAttributeSet")) {
-							System.out.println("isMemberOfPartialAttributeSet "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out
+										.println("isMemberOfPartialAttributeSet "
+												+ attr.get(0).toString());
+							}
 							item.setIsMemberOfPartialAttributeSet(attr.get(0)
 									.toString());
 						} else if (attr.getID().equals("systemFlags")) {
-							System.out.println("systemFlags "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("systemFlags "
+										+ attr.get(0).toString());
+							}
 							item.setSystemFlags(attr.get(0).toString());
 						} else if (attr.getID().equals("adminCount")) {
-							System.out.println("adminCount "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("adminCount "
+										+ attr.get(0).toString());
+							}
 							item.setAdminCount(attr.get(0).toString());
 						} else if (attr.getID().equals("fSMORoleOwner")) {
-							System.out.println("fSMORoleOwner "
-									+ attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("fSMORoleOwner "
+										+ attr.get(0).toString());
+							}
 							item.setfSMORoleOwner(attr.get(0).toString());
 						} else {
 							item.setOther(attr.get(0).toString());
+							if (isDebug) {
+								System.out.println("other "
+										+ attr.get(0).toString());
+							}
 						}
 					}
 
@@ -405,5 +503,107 @@ public class LdapManager {
 		}
 
 		return strSid.toString();
+	}
+
+	public ArrayList<User> getStudentsByPromotion(Promotion promotion) {
+		ArrayList<LdapItem> items = this.request(promotion.getOu(), false);
+
+		for (LdapItem user_ldapitem : items) {
+			promotion.getUsers().add(
+					new User(0, user_ldapitem.getName(), user_ldapitem
+							.getGivenName(), "", "", user_ldapitem
+							.getObjectGUID(), null));
+		}
+
+		return promotion.getUsers();
+	}
+
+	public ArrayList<Promotion> getAllPromotions(String school) {
+		String requestBase = "OU=Eleves,OU=Utilisateurs,OU=Formation,OU="
+				+ school + ",OU=Sites";
+		ArrayList<LdapItem> items = this.request(requestBase, false);
+
+		ArrayList<Promotion> promotions = new ArrayList<Promotion>();
+
+		for (LdapItem ldapItem : items) {
+			String name = ldapItem.getName();
+			String sub_request = "OU=" + ldapItem.getOu() + "," + requestBase;
+			ArrayList<LdapItem> sub_items = this.request(sub_request, false);
+			for (LdapItem sub_ldapItem : sub_items) {
+				String years = sub_ldapItem.getName();
+				Promotion promo = new Promotion(0, years, name);
+				promo.setOu("OU=" + sub_ldapItem.getName() + "," + sub_request);
+				promotions.add(promo);
+			}
+		}
+
+		return promotions;
+	}
+
+	public ArrayList<Promotion> getPromotions(String school, String years,
+			String promotion) {
+		String requestBase = "OU=Eleves,OU=Utilisateurs,OU=Formation,OU="
+				+ school + ",OU=Sites";
+		ArrayList<LdapItem> items = this.request(requestBase, false);
+
+		ArrayList<Promotion> promotions = new ArrayList<Promotion>();
+
+		if (promotion.equals("") || promotion == null) {
+			for (LdapItem ldapItem : items) {
+					String name = ldapItem.getName();
+					String sub_request = "OU=" + ldapItem.getOu() + ","
+							+ requestBase;
+					ArrayList<LdapItem> sub_items = this.request(sub_request,
+							false);
+
+					if (years.equals("") || years == null) {
+						for (LdapItem sub_ldapItem : sub_items) {
+							Promotion promo = new Promotion(0, years, name);
+							promo.setOu("OU=" + sub_ldapItem.getName() + ","
+									+ sub_request);
+							promotions.add(promo);
+						}
+					} else {
+						for (LdapItem sub_ldapItem : sub_items) {
+							if (sub_ldapItem.getName().contains(years)) {
+								Promotion promo = new Promotion(0, years, name);
+								promo.setOu("OU=" + sub_ldapItem.getName()
+										+ "," + sub_request);
+								promotions.add(promo);
+							}
+						}
+					}
+			}
+		} else {
+			for (LdapItem ldapItem : items) {
+				if (ldapItem.getName().contains(promotion)) {
+					String name = ldapItem.getName();
+					String sub_request = "OU=" + ldapItem.getOu() + ","
+							+ requestBase;
+					ArrayList<LdapItem> sub_items = this.request(sub_request,
+							false);
+
+					if (years.equals("") || years == null) {
+						for (LdapItem sub_ldapItem : sub_items) {
+							Promotion promo = new Promotion(0, years, name);
+							promo.setOu("OU=" + sub_ldapItem.getName() + ","
+									+ sub_request);
+							promotions.add(promo);
+						}
+					} else {
+						for (LdapItem sub_ldapItem : sub_items) {
+							if (sub_ldapItem.getName().contains(years)) {
+								Promotion promo = new Promotion(0, years, name);
+								promo.setOu("OU=" + sub_ldapItem.getName()
+										+ "," + sub_request);
+								promotions.add(promo);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return promotions;
 	}
 }

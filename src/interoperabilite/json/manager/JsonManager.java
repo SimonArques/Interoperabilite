@@ -23,6 +23,11 @@ public class JsonManager {
 		return this;
 	}
 
+	public JsonManager addItems(ArrayList<?> items) {
+		this.objects.addAll(items);
+		return this;
+	}
+
 	public JsonManager clear() {
 		this.objects.clear();
 		return this;
@@ -62,7 +67,6 @@ public class JsonManager {
 	}
 
 	public void sendToFile(String filename, String path) {
-		ObjectMapper mapper = new ObjectMapper();
 		File file = new File(path);
 
 		if (!file.exists()) {

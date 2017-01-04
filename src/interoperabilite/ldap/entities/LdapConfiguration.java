@@ -9,10 +9,10 @@ public class LdapConfiguration {
 
 	private String ldapContextFactory;
 	private String ldapBaseDN;
-	private String ldapAuthentificationMode;
-	private String ldapUser;
 	private String ldapPassword;
 	private String ldapServerUrl;
+	private String ldapAuthentificationMode;
+	private String ldapUser;
 
 	public String getLdapContextFactory() {
 		return ldapContextFactory;
@@ -55,7 +55,8 @@ public class LdapConfiguration {
 
 	public static synchronized LdapConfiguration getInstance() {
 		if (INSTANCE == null) {
-			ArrayList<LdapConfiguration> configs = JsonManager.getInstance().<LdapConfiguration>readFromFile("configuration.json",".\\config\\",LdapConfiguration.class);
+			ArrayList<LdapConfiguration> configs = JsonManager.getInstance()
+					.<LdapConfiguration>readFromFile("configuration.json",".\\config\\",LdapConfiguration.class);
 			for (LdapConfiguration ldapConfiguration : configs) {
 				INSTANCE = ldapConfiguration;
 			}
